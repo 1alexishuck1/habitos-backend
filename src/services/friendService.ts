@@ -1,4 +1,6 @@
 import * as repo from '../repositories/friendRepository';
+import * as pushService from './pushService';
+import { findUserById } from '../repositories/userRepository';
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 
@@ -31,7 +33,19 @@ export async function sendRequest(senderId: string, receiverId: string) {
         return repo.updateRequestStatus(existing.id, 'PENDING');
     }
 
-    return repo.createRequest(senderId, receiverId);
+    const result = await repo.createRequest(senderId, receiverId);
+
+    // Send push notification to the receiver
+    const sender = await findUserById(senderId);
+    const senderName = sender?.name ?? 'Alguien';
+    pushService.sendToUser(receiverId, {
+        title: 'Nueva solicitud de amistad',
+        body: `${senderName} te envió una solicitud de amistad.`,
+        url: '/friends',
+        tag: 'friend-request',
+    });
+
+    return result;
 }
 
 // ─── Respond to request ───────────────────────────────────────────────────────
@@ -125,7 +139,20 @@ export async function sendMessage(senderId: string, receiverId: string, message:
         }
     }
 
-    return repo.createMessage(senderId, receiverId, message);
+    const result = await repo.createMessage(senderId, receiverId, message);
+
+    // Send push notification to the receiver
+    const sender = await findUserById(senderId);
+    const senderName = sender?.name ?? 'Alguien';
+    const preview = message.length > 60 ? message.slice(0, 57) + '...' : message;
+    pushService.sendToUser(receiverId, {
+        title: `💪 Mensaje de ${senderName}`,
+        body: preview,
+        url: '/friends',
+        tag: 'friend-message',
+    });
+
+    return result;
 }
 
 export async function getUnreadMessages(userId: string) {
