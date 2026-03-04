@@ -39,14 +39,15 @@ export async function sendRequest(req: Request, res: Response, next: NextFunctio
         // 1. SSE (real-time if the app tab is open)
         sseManager.pushToUser(receiverId, 'friend_request', {
             id: result.id, senderId: result.senderId, createdAt: result.createdAt,
+            sender: (result as any).sender,
         });
 
         // 2. Web Push (works even if the app is closed / in background)
         pushService.sendToUser(receiverId, {
-            title: '\uD83D\uDC65 Nueva solicitud de amistad',
+            title: '👥 Nueva solicitud de amistad',
             body: `${senderName} quiere ser tu amigo`,
             tag: 'friend-request',
-            url: '/amigos',
+            url: '/friends',
         }).catch(() => { }); // fire-and-forget — don't fail the request
 
         res.status(201).json(result);

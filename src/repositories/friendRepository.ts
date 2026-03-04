@@ -29,6 +29,7 @@ export async function findExistingRequest(senderId: string, receiverId: string) 
 export async function createRequest(senderId: string, receiverId: string) {
     return prisma.friendRequest.create({
         data: { senderId, receiverId },
+        include: { sender: { select: { id: true, name: true } } },
     });
 }
 
