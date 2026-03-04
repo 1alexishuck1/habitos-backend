@@ -1,0 +1,330 @@
+// Prisma schema — app-habitos
+// Timezone: America/Argentina/Buenos_Aires. All dates stored as UTC, converted in app layer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum HabitType {
+  CHECK    // done / not done
+  COUNTER  // numeric count per day
+}
+
+enum FrequencyType {
+  DAILY
+  WEEKLY         // once per week
+  SPECIFIC_DAYS  // array of ISO weekday numbers (1=Mon..7=Sun)
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  timezone     String   @default("America/Argentina/Buenos_Aires")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  refreshTokens    RefreshToken[]
+  habits           Habit[]
+  habitLogs        HabitLog[]
+  habitSnapshots   HabitDailySnapshot[]
+  tasks            Task[]
+  weeklySummaries  WeeklySnapshot[]
+  reflections      DailyReflection[]
+  pushSubscriptions PushSubscription[]
+  workoutDays       WorkoutDay[]
+
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+  friendshipsA     Friendship[]    @relation("FriendshipsA")
+  friendshipsB     Friendship[]    @relation("FriendshipsB")
+  sentMessages     FriendMessage[] @relation("SentMessages")
+  receivedMessages FriendMessage[] @relation("ReceivedMessages")
+
+  @@map("users")
+}
+
+// Refresh tokens stored hashed; short-lived access tokens are stateless
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─── Habits ──────────────────────────────────────────────────────────────────
+
+// Seeded templates visible to all users for quick onboarding
+model HabitTemplate {
+  id               String        @id @default(uuid())
+  name             String
+  description      String?
+  type             HabitType
+  defaultFrequency FrequencyType @map("default_frequency")
+  icon             String?       // emoji or icon name
+  category         String?
+
+  habits Habit[]
+
+  @@map("habit_templates")
+}
+
+model Habit {
+  id            String        @id @default(uuid())
+  userId        String        @map("user_id")
+  templateId    String?       @map("template_id")
+  name          String
+  description   String?
+  type          HabitType
+  frequencyType FrequencyType @map("frequency_type")
+  // ISO weekday numbers: 1=Mon, 2=Tue ... 7=Sun. Empty = not applicable.
+  frequencyDays Int[]         @map("frequency_days")
+  isPaused      Boolean       @default(false) @map("is_paused")
+  isArchived    Boolean       @default(false) @map("is_archived")
+  // maxStreak only ever increases; not reset when frequency changes
+  maxStreak     Int           @default(0) @map("max_streak")
+  category      String?       // e.g. salud, mente, productividad, nutricion, hogar, finanzas
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template  HabitTemplate? @relation(fields: [templateId], references: [id])
+  logs      HabitLog[]
+  snapshots HabitDailySnapshot[]
+
+  @@index([userId])
+  @@map("habits")
+}
+
+// Append-only event log — one row per user action (CHECK = one/day, COUNTER += on each tap)
+model HabitLog {
+  id        String   @id @default(uuid())
+  habitId   String   @map("habit_id")
+  userId    String   @map("user_id")
+  date      DateTime @db.Date // calendar date in ARG timezone
+  value     Int      // 1 for CHECK; increment amount for COUNTER
+  comment   String?  // only the last comment of the day is surfaced (stored on snapshot)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  habit Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([habitId, date])
+  @@map("habit_logs")
+}
+
+// Aggregated daily result — upserted on every new log; source of truth for streaks/stats
+model HabitDailySnapshot {
+  id         String   @id @default(uuid())
+  habitId    String   @map("habit_id")
+  userId     String   @map("user_id")
+  date       DateTime @db.Date
+  totalValue Int      @default(0) @map("total_value")
+  completed  Boolean  @default(false)
+  comment    String?  // latest comment for the day
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  habit Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([habitId, date])
+  @@map("habit_daily_snapshots")
+}
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
+
+model Task {
+  id        String     @id @default(uuid())
+  userId    String     @map("user_id")
+  title     String
+  description String?
+  category  String     @default("general")
+  status    TaskStatus @default(PENDING)
+
+  // Recurring tasks: rule stored as JSON { type: "daily"|"weekly"|"monthly", days?: [1-7] }
+  isRecurring    Boolean  @default(false) @map("is_recurring")
+  recurrenceRule Json?    @map("recurrence_rule")
+
+  dueDate   DateTime?  @db.Date @map("due_date")
+  doneAt    DateTime?  @map("done_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dueDate, status])
+  @@map("tasks")
+}
+
+// ─── Weekly Snapshots ────────────────────────────────────────────────────────
+
+// Generated lazily on first visit of each new week
+model WeeklySnapshot {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  weekStart   DateTime @db.Date @map("week_start") // always Monday
+  weekEnd     DateTime @db.Date @map("week_end")   // always Sunday
+  tasksDone   Int      @default(0) @map("tasks_done")
+  tasksTotal  Int      @default(0) @map("tasks_total")
+  habitsData  Json     @map("habits_data") // { habitId, name, daysCompleted, daysRequired }[]
+  bestDay     Int?     @map("best_day")    // ISO weekday 1=Mon..7=Sun
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId, weekStart])
+  @@map("weekly_snapshots")
+}
+// ─── Daily Reflections ───────────────────────────────────────────────────────
+
+model DailyReflection {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  date      DateTime @db.Date // midnight UTC representation of the day
+  content   String   @db.Text
+  mood      String?  // emoji or identifier
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_reflections")
+}
+
+// ─── Friends ─────────────────────────────────────────────────────────────────
+
+model FriendRequest {
+  id         String              @id @default(uuid())
+  senderId   String              @map("sender_id")
+  receiverId String              @map("receiver_id")
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  sender   User @relation("SentRequests",     fields: [senderId],   references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+  @@map("friend_requests")
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userAId   String   @map("user_a_id")
+  userBId   String   @map("user_b_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  userA User @relation("FriendshipsA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("FriendshipsB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@map("friendships")
+}
+
+// ─── Web Push Subscriptions ───────────────────────────────────────────────────
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  p256dh    String   @map("p256dh")   // ECDH public key
+  auth      String                    // auth secret
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ─── Gym ─────────────────────────────────────────────────────────────────────
+
+model WorkoutDay {
+  id        String            @id @default(cuid())
+  userId    String            @map("user_id")
+  dayOfWeek DayOfWeek         @map("day_of_week")
+  name      String            @default("")
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises WorkoutExercise[]
+
+  @@unique([userId, dayOfWeek])
+  @@map("workout_days")
+}
+
+model WorkoutExercise {
+  id           String     @id @default(cuid())
+  workoutDayId String     @map("workout_day_id")
+  name         String
+  sets         Int        @default(3)
+  reps         String     @default("10")
+  weight       Float?
+  notes        String?    @default("")
+  order        Int        @default(0)
+
+  workoutDay   WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+
+  @@map("workout_exercises")
+}
+
+// ─── Direct Messages (Motivations) ──────────────────────────────────────────
+
+model FriendMessage {
+  id         String   @id @default(uuid())
+  senderId   String   @map("sender_id")
+  receiverId String   @map("receiver_id")
+  message    String   @db.Text
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  sender   User @relation("SentMessages",     fields: [senderId],   references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([receiverId, createdAt])
+  @@index([senderId, receiverId])
+  @@map("friend_messages")
+}
