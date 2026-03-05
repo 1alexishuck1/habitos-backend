@@ -29,6 +29,7 @@ export async function calculateCurrentStreak(
     );
 
     const today = todayInArg();
+    const createdArgDate = toArgString(createdAt);
     let streak = 0;
     let current = new Date();
 
@@ -37,7 +38,7 @@ export async function calculateCurrentStreak(
         const dateStr = toArgString(current);
         const isoDay = getISODay(toZonedTime(current, TZ));
 
-        if (dateStr < toArgDate(createdAt)) break; // don't go before habit creation
+        if (dateStr < createdArgDate) break; // don't go before habit creation
 
         const isDue = isDueOnDay(frequencyType, frequencyDays, isoDay);
 
