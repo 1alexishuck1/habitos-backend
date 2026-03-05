@@ -81,10 +81,10 @@ export async function sendToUser(userId: string, payload: PushPayload) {
                 console.info(`[push] ✓ Sent to ${sub.endpoint.slice(-20)}`);
             } catch (err: any) {
                 console.error(`[push] ✗ Failed (${err?.statusCode}): ${err?.body || err?.message}`);
-                // 410 Gone or 404 = subscription expired → remove it
-                if (err?.statusCode === 410 || err?.statusCode === 404) {
+                // 410 Gone, 404, or 403 BadJwtToken = subscription invalid → remove it
+                if (err?.statusCode === 410 || err?.statusCode === 404 || err?.statusCode === 403) {
                     await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
-                    console.info(`[push] Removed expired subscription`);
+                    console.info(`[push] Removed invalid subscription`);
                 }
             }
         }),
