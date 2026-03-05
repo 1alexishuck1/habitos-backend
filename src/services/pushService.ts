@@ -57,24 +57,34 @@ export interface PushPayload {
 }
 
 export async function sendToUser(userId: string, payload: PushPayload) {
-    if (!ensureVapid()) return; // VAPID not configured — skip silently
+    if (!ensureVapid()) {
+        console.warn('[push] sendToUser skipped — VAPID not configured');
+        return;
+    }
 
     const subs = await prisma.pushSubscription.findMany({ where: { userId } });
-    if (subs.length === 0) return;
+    if (subs.length === 0) {
+        console.info(`[push] No subscriptions found for user ${userId}`);
+        return;
+    }
 
+    console.info(`[push] Sending to ${subs.length} subscription(s) for user ${userId}: ${payload.title}`);
     const json = JSON.stringify(payload);
 
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
         subs.map(async (sub) => {
             try {
                 await webpush.sendNotification(
                     { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
                     json,
                 );
+                console.info(`[push] ✓ Sent to ${sub.endpoint.slice(-20)}`);
             } catch (err: any) {
+                console.error(`[push] ✗ Failed (${err?.statusCode}): ${err?.body || err?.message}`);
                 // 410 Gone or 404 = subscription expired → remove it
                 if (err?.statusCode === 410 || err?.statusCode === 404) {
                     await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
+                    console.info(`[push] Removed expired subscription`);
                 }
             }
         }),
