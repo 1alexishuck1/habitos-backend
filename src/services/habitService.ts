@@ -1,4 +1,5 @@
 import * as habitRepo from '../repositories/habitRepository';
+import * as userRepo from '../repositories/userRepository';
 import { createError } from '../middlewares/errorHandler';
 import { todayInArg, argDateToUtc, isDueOnDay, toArgDate, toArgString } from '../utils/date';
 import { getISODay } from 'date-fns';
@@ -197,6 +198,9 @@ export async function logHabit(habitId: string, userId: string, data: {
     const totalValue = Math.max(0, allLogsToday.reduce((sum, l) => sum + l.value, 0));
     const completed = habit.type === 'CHECK' ? totalValue >= 1 : totalValue >= (habit.goalValue ?? 1);
 
+    const snapshotBefore = await habitRepo.getTodaySnapshot(habitId, targetDateUtc);
+    const wasCompleted = snapshotBefore?.completed ?? false;
+
     await habitRepo.upsertDailySnapshot({
         habitId,
         userId,
@@ -205,6 +209,10 @@ export async function logHabit(habitId: string, userId: string, data: {
         completed,
         comment: data.comment,
     });
+
+    if (!wasCompleted && completed) {
+        await userRepo.addExperience(userId, 10, `Hábito completado: ${habit.name}`);
+    }
 
     // Update max streak if needed
     // TODO: This streak calculation only updates based on history leading up to today.

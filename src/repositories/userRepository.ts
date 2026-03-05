@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { prisma } from '../config/database'; // updated Types
 
 // User repository — only DB queries, no business logic
 
@@ -43,5 +43,33 @@ export async function revokeAllUserTokens(userId: string) {
     return prisma.refreshToken.updateMany({
         where: { userId, revoked: false },
         data: { revoked: true },
+    });
+}
+
+export async function addExperience(userId: string, amount: number, reason: string) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return null;
+
+    const newExp = user.experience + amount;
+    const newLevel = Math.floor(newExp / 100) + 1;
+
+    const [updatedUser] = await prisma.$transaction([
+        prisma.user.update({
+            where: { id: userId },
+            data: { experience: newExp, level: newLevel },
+        }),
+        prisma.experienceLog.create({
+            data: { userId, amount, reason },
+        }),
+    ]);
+
+    return updatedUser;
+}
+
+export async function getExperienceLogs(userId: string) {
+    return prisma.experienceLog.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
     });
 }

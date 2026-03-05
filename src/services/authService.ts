@@ -64,6 +64,10 @@ export async function getMe(userId: string) {
     return safe;
 }
 
+export async function getExperienceLogs(userId: string) {
+    return userRepo.getExperienceLogs(userId);
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function issueTokens(userId: string, email: string) {

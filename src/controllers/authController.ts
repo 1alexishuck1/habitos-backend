@@ -55,3 +55,10 @@ export async function me(req: Request, res: Response, next: NextFunction) {
         res.json(user);
     } catch (err) { next(err); }
 }
+
+export async function getExperienceLogs(req: Request, res: Response, next: NextFunction) {
+    try {
+        const logs = await authService.getExperienceLogs(req.user!.userId);
+        res.json(logs);
+    } catch (err) { next(err); }
+}

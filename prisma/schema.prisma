@@ -53,11 +53,14 @@ model User {
   passwordHash String   @map("password_hash")
   name         String
   timezone     String   @default("America/Argentina/Buenos_Aires")
+  experience   Int      @default(0)
+  level        Int      @default(1)
   createdAt    DateTime @default(now()) @map("created_at")
 
   refreshTokens    RefreshToken[]
   habits           Habit[]
   habitLogs        HabitLog[]
+  experienceLogs   ExperienceLog[]
   habitSnapshots   HabitDailySnapshot[]
   tasks            Task[]
   weeklySummaries  WeeklySnapshot[]
@@ -328,4 +331,19 @@ model FriendMessage {
   @@index([receiverId, createdAt])
   @@index([senderId, receiverId])
   @@map("friend_messages")
+}
+
+// ─── Experience Logs ────────────────────────────────────────────────────────
+
+model ExperienceLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  amount    Int
+  reason    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("experience_logs")
 }

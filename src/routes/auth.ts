@@ -13,5 +13,6 @@ router.post('/logout', authCtrl.logout);
 
 // Protected
 router.get('/me', authMiddleware, authCtrl.me);
+router.get('/me/experience', authMiddleware, authCtrl.getExperienceLogs);
 
 export default router;
