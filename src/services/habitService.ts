@@ -166,17 +166,18 @@ export async function togglePause(habitId: string, userId: string) {
 export async function logHabit(habitId: string, userId: string, data: {
     value: number;
     comment?: string;
+    dateStr?: string;
 }) {
     const habit = await habitRepo.findHabitById(habitId, userId);
     if (!habit) throw createError('Hábito no encontrado', 404);
     if (habit.isArchived) throw createError('El hábito está archivado', 400);
 
-    const today = todayInArg();
-    const todayDate = argDateToUtc(today);
+    const targetDateStr = data.dateStr || todayInArg();
+    const targetDateUtc = argDateToUtc(targetDateStr);
 
     // CHECK type: only one log per day allowed
     if (habit.type === 'CHECK') {
-        const existing = await habitRepo.getLogsForHabitOnDate(habitId, todayDate);
+        const existing = await habitRepo.getLogsForHabitOnDate(habitId, targetDateUtc);
         if (existing.length > 0) throw createError('Este hábito ya fue marcado hoy', 409);
     }
 
@@ -184,26 +185,28 @@ export async function logHabit(habitId: string, userId: string, data: {
     await habitRepo.createHabitLog({
         habitId,
         userId,
-        date: todayDate,
+        date: targetDateUtc,
         value: data.value,
         comment: data.comment,
     });
 
     // Recalculate and upsert daily snapshot
-    const allLogsToday = await habitRepo.getLogsForHabitOnDate(habitId, todayDate);
+    const allLogsToday = await habitRepo.getLogsForHabitOnDate(habitId, targetDateUtc);
     const totalValue = allLogsToday.reduce((sum, l) => sum + l.value, 0);
     const completed = habit.type === 'CHECK' ? totalValue >= 1 : totalValue >= 1;
 
     await habitRepo.upsertDailySnapshot({
         habitId,
         userId,
-        date: todayDate,
+        date: targetDateUtc,
         totalValue,
         completed,
         comment: data.comment,
     });
 
     // Update max streak if needed
+    // TODO: This streak calculation only updates based on history leading up to today.
+    // We should run it if the logged date affects the current streak.
     const currentStreak = await calculateCurrentStreak(
         habitId, habit.frequencyType, habit.frequencyDays, habit.isPaused, habit.createdAt
     );
@@ -212,17 +215,17 @@ export async function logHabit(habitId: string, userId: string, data: {
     return { totalValue, completed, currentStreak, maxStreak: Math.max(habit.maxStreak, currentStreak) };
 }
 
-export async function unlogHabit(habitId: string, userId: string): Promise<void> {
+export async function unlogHabit(habitId: string, userId: string, dateStr?: string): Promise<void> {
     const habit = await habitRepo.findHabitById(habitId, userId);
     if (!habit) throw createError('Hábito no encontrado', 404);
 
-    const today = todayInArg();
-    const todayDate = argDateToUtc(today);
+    const targetDateStr = dateStr || todayInArg();
+    const targetDateUtc = argDateToUtc(targetDateStr);
 
     // Delete logs and snapshot for today
-    await habitRepo.deleteLog(habitId, todayDate);
+    await habitRepo.deleteLog(habitId, targetDateUtc);
     try {
-        await habitRepo.deleteSnapshot(habitId, todayDate);
+        await habitRepo.deleteSnapshot(habitId, targetDateUtc);
     } catch { /* if no snapshot yet, it's fine */ }
 }
 
@@ -234,11 +237,12 @@ export async function getHabitLogs(habitId: string, userId: string) {
 
 // ─── Today view ───────────────────────────────────────────────────────────────
 
-export async function getTodayHabits(userId: string) {
+export async function getTodayHabits(userId: string, targetDateStr?: string) {
     const habits = await habitRepo.getUserHabits(userId);
-    const today = todayInArg();
+    const today = targetDateStr || todayInArg();
     const todayDate = argDateToUtc(today);
-    const isoDay = getISODay(toZonedTime(new Date(), TZ));
+    // Use target date (or today) for day of week checking
+    const isoDay = getISODay(new Date(todayDate.getUTCFullYear(), todayDate.getUTCMonth(), todayDate.getUTCDate()));
 
     const result = await Promise.all(
         habits

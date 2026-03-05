@@ -33,7 +33,8 @@ export async function getTasks(req: Request, res: Response, next: NextFunction) 
 
 export async function getTodayTasks(req: Request, res: Response, next: NextFunction) {
     try {
-        res.json(await taskService.getTodayTasks(req.user!.userId));
+        const date = req.query.date as string | undefined;
+        res.json(await taskService.getTodayTasks(req.user!.userId, date));
     } catch (err) { next(err); }
 }
 

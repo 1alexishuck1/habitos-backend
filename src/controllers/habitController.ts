@@ -19,6 +19,7 @@ const updateHabitSchema = createHabitSchema.partial().omit({ templateId: true, t
 const logSchema = z.object({
     value: z.number().int().min(1).default(1),
     comment: z.string().max(500).optional(),
+    dateStr: z.string().optional(),
 });
 
 export async function getTemplates(req: Request, res: Response, next: NextFunction) {
@@ -35,7 +36,8 @@ export async function getHabits(req: Request, res: Response, next: NextFunction)
 
 export async function getToday(req: Request, res: Response, next: NextFunction) {
     try {
-        res.json(await habitService.getTodayHabits(req.user!.userId));
+        const date = req.query.date as string | undefined;
+        res.json(await habitService.getTodayHabits(req.user!.userId, date));
     } catch (err) { next(err); }
 }
 
@@ -86,7 +88,8 @@ export async function logHabit(req: Request, res: Response, next: NextFunction) 
 
 export async function unlogHabit(req: Request, res: Response, next: NextFunction) {
     try {
-        await habitService.unlogHabit(req.params.id, req.user!.userId);
+        const date = req.query.date as string | undefined;
+        await habitService.unlogHabit(req.params.id, req.user!.userId, date);
         res.status(204).send();
     } catch (err) { next(err); }
 }

@@ -13,15 +13,14 @@ export async function getUserTasks(userId: string, filters?: { status?: TaskStat
     return taskRepo.getUserTasks(userId, filters);
 }
 
-export async function getTodayTasks(userId: string) {
-    const today = todayInArg();
-    const todayDate = argDateToUtc(today);
-    const endDate = new Date(todayDate);
+export async function getTodayTasks(userId: string, targetDateStr?: string) {
+    const todayStr = targetDateStr || todayInArg();
+    const targetDate = argDateToUtc(todayStr);
+    const endDate = new Date(targetDate);
     endDate.setDate(endDate.getDate() + 1);
 
-    const allTasks = await taskRepo.getTasksForDateRange(userId, todayDate, endDate);
-    const isoDay = getISODay(toZonedTime(new Date(), TZ));
-    const todayStr = todayInArg();
+    const allTasks = await taskRepo.getTasksForDateRange(userId, targetDate, endDate);
+    const isoDay = getISODay(new Date(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate()));
 
     return allTasks.filter(task => {
         // If it's done, only show it if it was finished today
