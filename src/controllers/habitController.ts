@@ -9,6 +9,7 @@ const createHabitSchema = z.object({
     name: z.string().min(1).max(100),
     description: z.string().max(300).optional(),
     type: z.enum(['CHECK', 'COUNTER']),
+    goalValue: z.number().int().min(1).optional(),
     frequencyType: z.enum(['DAILY', 'WEEKLY', 'SPECIFIC_DAYS']),
     frequencyDays: z.array(z.number().int().min(1).max(7)).optional().default([]),
     category: z.string().max(50).optional(),

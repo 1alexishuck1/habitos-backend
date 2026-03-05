@@ -114,6 +114,7 @@ model Habit {
   name          String
   description   String?
   type          HabitType
+  goalValue     Int?          @map("goal_value")
   frequencyType FrequencyType @map("frequency_type")
   // ISO weekday numbers: 1=Mon, 2=Tue ... 7=Sun. Empty = not applicable.
   frequencyDays Int[]         @map("frequency_days")

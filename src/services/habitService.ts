@@ -105,6 +105,7 @@ export async function createHabit(userId: string, data: {
     name: string;
     description?: string;
     type: string;
+    goalValue?: number;
     frequencyType: string;
     frequencyDays?: number[];
     category?: string;
@@ -122,6 +123,7 @@ export async function createHabit(userId: string, data: {
         name: data.name,
         description: data.description,
         type: data.type,
+        goalValue: data.goalValue,
         frequencyType: data.frequencyType,
         frequencyDays: data.frequencyDays ?? [],
         category,
@@ -193,7 +195,7 @@ export async function logHabit(habitId: string, userId: string, data: {
     // Recalculate and upsert daily snapshot
     const allLogsToday = await habitRepo.getLogsForHabitOnDate(habitId, targetDateUtc);
     const totalValue = allLogsToday.reduce((sum, l) => sum + l.value, 0);
-    const completed = habit.type === 'CHECK' ? totalValue >= 1 : totalValue >= 1;
+    const completed = habit.type === 'CHECK' ? totalValue >= 1 : totalValue >= (habit.goalValue ?? 1);
 
     await habitRepo.upsertDailySnapshot({
         habitId,

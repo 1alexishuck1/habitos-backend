@@ -24,6 +24,7 @@ export async function createHabit(data: {
     name: string;
     description?: string;
     type: string;
+    goalValue?: number;
     frequencyType: string;
     frequencyDays: number[];
     category?: string;
@@ -34,6 +35,7 @@ export async function createHabit(data: {
 export async function updateHabit(id: string, data: Partial<{
     name: string;
     description: string;
+    goalValue: number;
     frequencyType: string;
     frequencyDays: number[];
     isPaused: boolean;
