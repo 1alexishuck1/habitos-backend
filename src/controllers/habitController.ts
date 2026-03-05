@@ -11,6 +11,7 @@ const createHabitSchema = z.object({
     type: z.enum(['CHECK', 'COUNTER']),
     frequencyType: z.enum(['DAILY', 'WEEKLY', 'SPECIFIC_DAYS']),
     frequencyDays: z.array(z.number().int().min(1).max(7)).optional().default([]),
+    category: z.string().max(50).optional(),
 });
 
 const updateHabitSchema = createHabitSchema.partial().omit({ templateId: true, type: true });
