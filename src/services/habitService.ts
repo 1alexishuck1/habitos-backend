@@ -194,7 +194,7 @@ export async function logHabit(habitId: string, userId: string, data: {
 
     // Recalculate and upsert daily snapshot
     const allLogsToday = await habitRepo.getLogsForHabitOnDate(habitId, targetDateUtc);
-    const totalValue = allLogsToday.reduce((sum, l) => sum + l.value, 0);
+    const totalValue = Math.max(0, allLogsToday.reduce((sum, l) => sum + l.value, 0));
     const completed = habit.type === 'CHECK' ? totalValue >= 1 : totalValue >= (habit.goalValue ?? 1);
 
     await habitRepo.upsertDailySnapshot({

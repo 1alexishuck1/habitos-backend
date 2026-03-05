@@ -18,7 +18,7 @@ const createHabitSchema = z.object({
 const updateHabitSchema = createHabitSchema.partial().omit({ templateId: true, type: true });
 
 const logSchema = z.object({
-    value: z.number().int().min(1).default(1),
+    value: z.number().int().default(1),
     comment: z.string().max(500).optional(),
     dateStr: z.string().optional(),
 });
