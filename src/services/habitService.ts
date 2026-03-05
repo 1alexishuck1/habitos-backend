@@ -79,13 +79,22 @@ export async function getTemplates() {
 
 export async function getUserHabits(userId: string) {
     const habits = await habitRepo.getUserHabits(userId);
+    const today = todayInArg();
+    const todayDate = argDateToUtc(today);
+    const isoDay = getISODay(toZonedTime(new Date(), TZ));
+
     return Promise.all(habits.map(async (h) => {
+        const snapshot = await habitRepo.getTodaySnapshot(h.id, todayDate);
         const currentStreak = await calculateCurrentStreak(
             h.id, h.frequencyType, h.frequencyDays, h.isPaused, h.createdAt
         );
         return {
             ...h,
+            todayValue: snapshot?.totalValue ?? 0,
+            todayCompleted: snapshot?.completed ?? false,
             currentStreak,
+            maxStreak: h.maxStreak,
+            isDue: isDueOnDay(h.frequencyType, h.frequencyDays, isoDay),
         };
     }));
 }
