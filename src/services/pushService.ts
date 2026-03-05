@@ -81,6 +81,8 @@ export async function sendToUser(userId: string, payload: PushPayload) {
                 console.info(`[push] ✓ Sent to ${sub.endpoint.slice(-20)}`);
             } catch (err: any) {
                 console.error(`[push] ✗ Failed (${err?.statusCode}): ${err?.body || err?.message}`);
+                console.error(`[push] Endpoint: ${sub.endpoint}`);
+                console.error(`[push] VAPID subject: ${process.env.VAPID_CONTACT}`);
                 // 410 Gone, 404, or 403 BadJwtToken = subscription invalid → remove it
                 if (err?.statusCode === 410 || err?.statusCode === 404 || err?.statusCode === 403) {
                     await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
