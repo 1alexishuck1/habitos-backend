@@ -87,6 +87,14 @@ export async function getActivity(req: Request, res: Response, next: NextFunctio
     } catch (err) { next(err); }
 }
 
+/** GET /friends/:friendId/habits-today */
+export async function getFriendTodayHabits(req: Request, res: Response, next: NextFunction) {
+    try {
+        const habits = await friendService.getFriendTodayHabits(req.user!.userId, req.params.friendId);
+        res.json(habits);
+    } catch (err) { next(err); }
+}
+
 /** DELETE /friends/:friendId */
 export async function removeFriend(req: Request, res: Response, next: NextFunction) {
     try {

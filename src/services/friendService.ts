@@ -1,4 +1,5 @@
 import * as repo from '../repositories/friendRepository';
+import { getTodayHabits } from './habitService';
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 
@@ -91,6 +92,26 @@ export async function getActivity(requesterId: string, friendId: string) {
         throw Object.assign(new Error('No sos amigo de este usuario.'), { statusCode: 403 });
     }
     return repo.getFriendActivity(friendId);
+}
+
+export async function getFriendTodayHabits(requesterId: string, friendId: string) {
+    const friends = await repo.areFriends(requesterId, friendId);
+    if (!friends) {
+        throw Object.assign(new Error('No sos amigo de este usuario.'), { statusCode: 403 });
+    }
+    const habits = await getTodayHabits(friendId);
+    // Return a safe subset — don't expose ids, just name, type, category, completion status
+    return habits.map(h => ({
+        id: h.id,
+        name: h.name,
+        type: h.type,
+        category: h.category,
+        frequencyType: h.frequencyType,
+        frequencyDays: h.frequencyDays,
+        todayCompleted: h.todayCompleted,
+        currentStreak: h.currentStreak,
+        templateId: h.templateId,
+    }));
 }
 
 // ─── Remove friend ─────────────────────────────────────────────────────────────

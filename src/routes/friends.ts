@@ -17,6 +17,7 @@ router.get('/events', friendController.subscribe);          // SSE — must be b
 router.post('/:friendId/messages', friendController.sendMessage);
 router.get('/:friendId/messages', friendController.getChatHistory);
 router.get('/:friendId/activity', friendController.getActivity);
+router.get('/:friendId/habits-today', friendController.getFriendTodayHabits);
 router.delete('/:friendId', friendController.removeFriend);
 
 export default router;
