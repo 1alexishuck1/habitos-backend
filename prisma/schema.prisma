@@ -45,6 +45,23 @@ enum DayOfWeek {
   SUN
 }
 
+enum SmokeStrategy {
+  COLD_TURKEY
+  GRADUAL
+}
+
+enum SmokeTrigger {
+  STRESS
+  ANXIETY
+  MEAL
+  COFFEE
+  SOCIAL
+  ALCOHOL
+  BOREDOM
+  WAKING_UP
+  OTHER
+}
+
 // ─── Users ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -74,6 +91,10 @@ model User {
   friendshipsB     Friendship[]    @relation("FriendshipsB")
   sentMessages     FriendMessage[] @relation("SentMessages")
   receivedMessages FriendMessage[] @relation("ReceivedMessages")
+  
+  smokeProfile     SmokeProfile?
+  smokeLogs        SmokeLog[]
+  smokeCravings    SmokeCraving[]
 
   @@map("users")
 }
@@ -346,4 +367,53 @@ model ExperienceLog {
 
   @@index([userId, createdAt])
   @@map("experience_logs")
+}
+
+// ─── Quit Smoking ────────────────────────────────────────────────────────────
+
+model SmokeProfile {
+  id               String        @id @default(uuid())
+  userId           String        @unique @map("user_id")
+  cigarettesPerDay Int           @map("cig_per_day")
+  yearsSmoking     Int           @map("years_smoking")
+  pricePerPack     Float         @map("price_per_pack")
+  cigPerPack       Int           @map("cig_per_pack")
+  strategy         SmokeStrategy
+  mainMotivation   String        @map("main_motivation")
+  startDate        DateTime      @default(now()) @map("start_date")
+  updatedAt        DateTime      @updatedAt
+  
+  // Para estrategia gradual
+  currentDailyLimit Int?         @map("current_daily_limit")
+  gradualPlan      Json?         // Detalle de las semanas y limites { week: 1, limit: 10 }[]
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("smoke_profiles")
+}
+
+model SmokeLog {
+  id           String        @id @default(uuid())
+  userId       String        @map("user_id")
+  quantity     Int           @default(1)
+  trigger      SmokeTrigger?
+  comment      String?
+  registeredAt DateTime      @default(now()) @map("registered_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, registeredAt])
+  @@map("smoke_logs")
+}
+
+model SmokeCraving {
+  id           String        @id @default(uuid())
+  userId       String        @map("user_id")
+  resisted     Boolean       // True si no fumo, False si termino fumando
+  trigger      SmokeTrigger?
+  registeredAt DateTime      @default(now()) @map("registered_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, registeredAt])
+  @@map("smoke_cravings")
 }

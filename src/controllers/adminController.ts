@@ -8,13 +8,19 @@ export const getAdminStats = async (req: Request, res: Response) => {
             totalHabits,
             totalCompletedHabitSnapshots,
             totalTasks,
-            totalCompletedTasks
+            totalCompletedTasks,
+            latestUsers
         ] = await Promise.all([
             prisma.user.count(),
             prisma.habit.count(),
             prisma.habitDailySnapshot.count({ where: { completed: true } }),
             prisma.task.count(),
-            prisma.task.count({ where: { status: 'DONE' } })
+            prisma.task.count({ where: { status: 'DONE' } }),
+            prisma.user.findMany({
+                select: { id: true, name: true, email: true, createdAt: true },
+                orderBy: { createdAt: 'desc' },
+                take: 5
+            })
         ]);
 
         // Consider online users as users who have a log or snapshot created updated today
@@ -33,7 +39,8 @@ export const getAdminStats = async (req: Request, res: Response) => {
             totalHabits,
             totalCompletedHabitSnapshots,
             totalTasks,
-            totalCompletedTasks
+            totalCompletedTasks,
+            latestUsers
         });
     } catch (error) {
         console.error('Error in getAdminStats:', error);
