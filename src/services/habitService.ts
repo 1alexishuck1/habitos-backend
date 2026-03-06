@@ -211,7 +211,7 @@ export async function logHabit(habitId: string, userId: string, data: {
     });
 
     if (!wasCompleted && completed) {
-        await userRepo.addExperience(userId, 10, `Hábito completado: ${habit.name}`);
+        await userRepo.addExperience(userId, 10, `Hábito completado: ${habit.name}`, targetDateUtc);
     }
 
     // Update max streak if needed
@@ -231,6 +231,11 @@ export async function unlogHabit(habitId: string, userId: string, dateStr?: stri
 
     const targetDateStr = dateStr || todayInArg();
     const targetDateUtc = argDateToUtc(targetDateStr);
+
+    const snapshot = await habitRepo.getTodaySnapshot(habitId, targetDateUtc);
+    if (snapshot?.completed) {
+        await userRepo.removeExperience(userId, 10, `Hábito completado: ${habit.name}`, targetDateUtc);
+    }
 
     // Delete logs and snapshot for today
     await habitRepo.deleteLog(habitId, targetDateUtc);
@@ -258,6 +263,7 @@ export async function getTodayHabits(userId: string, targetDateStr?: string) {
         habits
             .filter(h => !h.isArchived)
             .filter(h => isDueOnDay(h.frequencyType, h.frequencyDays, isoDay) || h.isPaused)
+            .filter(h => toArgString(h.createdAt) <= today)
             .map(async (h) => {
                 const snapshot = await habitRepo.getTodaySnapshot(h.id, todayDate);
                 const currentStreak = await calculateCurrentStreak(

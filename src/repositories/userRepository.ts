@@ -46,7 +46,7 @@ export async function revokeAllUserTokens(userId: string) {
     });
 }
 
-export async function addExperience(userId: string, amount: number, reason: string) {
+export async function addExperience(userId: string, amount: number, reason: string, logDate?: Date) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return null;
 
@@ -59,10 +59,38 @@ export async function addExperience(userId: string, amount: number, reason: stri
             data: { experience: newExp, level: newLevel },
         }),
         prisma.experienceLog.create({
-            data: { userId, amount, reason },
+            data: { userId, amount, reason, ...(logDate ? { createdAt: logDate } : {}) },
         }),
     ]);
 
+    return updatedUser;
+}
+
+export async function removeExperience(userId: string, amount: number, reason: string, logDate?: Date) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return null;
+
+    const newExp = Math.max(0, user.experience - amount);
+    const newLevel = Math.floor(newExp / 100) + 1;
+
+    // Find the latest experience log for this reason and amount
+    const log = await prisma.experienceLog.findFirst({
+        where: { userId, reason, amount, ...(logDate ? { createdAt: logDate } : {}) },
+        orderBy: { createdAt: 'desc' }
+    });
+
+    const ops: any[] = [
+        prisma.user.update({
+            where: { id: userId },
+            data: { experience: newExp, level: newLevel },
+        })
+    ];
+
+    if (log) {
+        ops.push(prisma.experienceLog.delete({ where: { id: log.id } }));
+    }
+
+    const [updatedUser] = await prisma.$transaction(ops);
     return updatedUser;
 }
 

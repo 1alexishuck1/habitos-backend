@@ -4,7 +4,7 @@ import { todayInArg, argDateToUtc, weekStart, weekEnd, toArgDate, toArgString } 
 import { RecurrenceRule, TaskStatus } from '../types';
 import { getISODay } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { addExperience } from '../repositories/userRepository';
+import { addExperience, removeExperience } from '../repositories/userRepository';
 
 const TZ = 'America/Argentina/Buenos_Aires';
 
@@ -92,12 +92,15 @@ export async function changeStatus(taskId: string, userId: string, status: TaskS
     if (!task) throw createError('Tarea no encontrada', 404);
 
     const isNowDone = status === 'DONE' && task.status !== 'DONE';
+    const isNowUndone = status !== 'DONE' && task.status === 'DONE';
     const doneAt = status === 'DONE' ? new Date() : undefined;
 
     const updated = await taskRepo.updateTask(taskId, { status, doneAt });
 
     if (isNowDone) {
-        await addExperience(userId, 10, 'Tarea completada: ' + task.title).catch(() => { });
+        await addExperience(userId, 10, 'Tarea completada: ' + task.title, doneAt).catch(() => { });
+    } else if (isNowUndone) {
+        await removeExperience(userId, 10, 'Tarea completada: ' + task.title, task.doneAt || new Date()).catch(() => { });
     }
 
     return updated;
