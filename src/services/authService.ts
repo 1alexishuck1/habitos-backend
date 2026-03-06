@@ -64,6 +64,11 @@ export async function getMe(userId: string) {
     return safe;
 }
 
+export async function deleteAccount(userId: string) {
+    await userRepo.revokeAllUserTokens(userId);
+    return userRepo.deleteUser(userId);
+}
+
 export async function getExperienceLogs(userId: string) {
     return userRepo.getExperienceLogs(userId);
 }

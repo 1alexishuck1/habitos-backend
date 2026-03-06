@@ -62,3 +62,10 @@ export async function getExperienceLogs(req: Request, res: Response, next: NextF
         res.json(logs);
     } catch (err) { next(err); }
 }
+
+export async function deleteAccount(req: Request, res: Response, next: NextFunction) {
+    try {
+        await authService.deleteAccount(req.user!.userId);
+        res.status(204).send();
+    } catch (err) { next(err); }
+}

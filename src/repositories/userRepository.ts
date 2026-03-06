@@ -10,6 +10,10 @@ export async function findUserById(id: string) {
     return prisma.user.findUnique({ where: { id } });
 }
 
+export async function deleteUser(id: string) {
+    return prisma.user.delete({ where: { id } });
+}
+
 export async function createUser(data: {
     email: string;
     passwordHash: string;

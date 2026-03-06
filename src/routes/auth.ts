@@ -13,6 +13,7 @@ router.post('/logout', authCtrl.logout);
 
 // Protected
 router.get('/me', authMiddleware, authCtrl.me);
+router.delete('/me', authMiddleware, authCtrl.deleteAccount);
 router.get('/me/experience', authMiddleware, authCtrl.getExperienceLogs);
 
 export default router;
