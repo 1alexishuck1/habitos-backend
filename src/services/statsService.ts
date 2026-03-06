@@ -1,7 +1,7 @@
 import * as statsRepo from '../repositories/statsRepository';
 import * as taskRepo from '../repositories/taskRepository';
 import * as habitRepo from '../repositories/habitRepository';
-import { todayInArg, argDateToUtc, weekStart, weekEnd, dateRange, toArgDate, isDueOnDay, getPeriodRange } from '../utils/date';
+import { todayInArg, argDateToUtc, weekStart, weekEnd, dateRange, toArgDate, isDueOnDay, getPeriodRange, toArgString } from '../utils/date';
 import { calculateCurrentStreak } from './habitService';
 import { getISODay } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
@@ -81,6 +81,7 @@ export async function getSummary(userId: string, period: string, refDate?: strin
 
     const habitsData = habits.map(h => {
         const daysRequired = days.filter(d => {
+            if (toArgString(h.createdAt) > d) return false;
             const isoDay = getISODay(toZonedTime(argDateToUtc(d), TZ));
             return isDueOnDay(h.frequencyType, h.frequencyDays, isoDay);
         }).length;
@@ -151,7 +152,8 @@ export async function getSummaryToday(userId: string) {
     const habits = await habitRepo.getUserHabits(userId);
     const dueHabits = habits
         .filter(h => !h.isArchived)
-        .filter(h => isDueOnDay(h.frequencyType, h.frequencyDays, isoDay) || h.isPaused);
+        .filter(h => isDueOnDay(h.frequencyType, h.frequencyDays, isoDay) || h.isPaused)
+        .filter(h => toArgString(h.createdAt) <= today);
 
     // Fetch today snapshots for all due habits
     const habitSnapshots = await statsRepo.getHabitSnapshotsForWeek(userId, todayDate, todayDate);
@@ -174,14 +176,15 @@ export async function getSummaryToday(userId: string) {
     todayEnd.setUTCHours(23, 59, 59, 999);
 
     const allTodayTasks = await taskRepo.getTasksForDateRange(userId, todayDate, todayEnd);
-    const doneTodayTasks = allTodayTasks.filter(t => t.status === 'DONE');
+    const validTodayTasks = allTodayTasks.filter(t => toArgString(t.createdAt) <= today);
+    const doneTodayTasks = validTodayTasks.filter(t => t.status === 'DONE');
 
-    const tasksTotal = allTodayTasks.length;
+    const tasksTotal = validTodayTasks.length;
     const tasksDone = doneTodayTasks.length;
 
     // Category breakdown
     const categoryStats: Record<string, { done: number; total: number }> = {};
-    allTodayTasks.forEach(t => {
+    validTodayTasks.forEach(t => {
         const cat = t.category || 'general';
         if (!categoryStats[cat]) categoryStats[cat] = { done: 0, total: 0 };
         categoryStats[cat].total++;
@@ -242,6 +245,7 @@ async function generateWeeklySnapshot(userId: string, wStart: string, wEnd: stri
 
     const habitsData = habits.map(h => {
         const daysRequired = days.filter(d => {
+            if (toArgString(h.createdAt) > d) return false;
             const isoDay = getISODay(toZonedTime(argDateToUtc(d), TZ));
             return isDueOnDay(h.frequencyType, h.frequencyDays, isoDay);
         }).length;

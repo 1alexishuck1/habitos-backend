@@ -24,6 +24,8 @@ export async function getTodayTasks(userId: string, targetDateStr?: string) {
     const isoDay = getISODay(new Date(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate()));
 
     return allTasks.filter(task => {
+        if (toArgString(task.createdAt) > todayStr) return false;
+
         // If it's done, only show it if it was finished today
         if (task.status === 'DONE') {
             return task.doneAt && todayStr === toArgString(task.doneAt);
