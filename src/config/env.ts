@@ -12,6 +12,7 @@ export const env = {
     JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
     FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
     DIARY_ENCRYPTION_KEY: process.env.DIARY_ENCRYPTION_KEY!,
+    API_SECRET: process.env.API_SECRET || 'habitos-secret-key-1234',
     TIMEZONE: 'America/Argentina/Buenos_Aires',
 };
 
