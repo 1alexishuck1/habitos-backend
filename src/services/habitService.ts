@@ -211,7 +211,9 @@ export async function logHabit(habitId: string, userId: string, data: {
     });
 
     if (!wasCompleted && completed) {
-        await userRepo.addExperience(userId, 10, `Hábito completado: ${habit.name}`, targetDateUtc);
+        await userRepo.addExperience(userId, 10, `Hábito completado: ${habit.name}`, targetDateUtc).catch(() => { });
+    } else if (wasCompleted && !completed) {
+        await userRepo.removeExperience(userId, 10, `Hábito completado: ${habit.name}`, targetDateUtc).catch(() => { });
     }
 
     // Update max streak if needed
