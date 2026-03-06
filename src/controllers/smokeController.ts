@@ -60,3 +60,12 @@ export async function logCraving(req: Request, res: Response, next: NextFunction
         next(error);
     }
 }
+
+export async function deleteProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+        await smokeService.deleteProfile(req.user!.userId);
+        res.status(204).send();
+    } catch (error) {
+        next(error);
+    }
+}

@@ -9,5 +9,6 @@ router.post('/profile', smokeController.createProfile);
 router.get('/dashboard', smokeController.getDashboard);
 router.post('/logs', smokeController.logSmoke);
 router.post('/cravings', smokeController.logCraving);
+router.delete('/profile', smokeController.deleteProfile);
 
 export default router;

@@ -132,3 +132,15 @@ export async function getDashboardStats(userId: string) {
         }
     };
 }
+
+export async function deleteProfile(userId: string) {
+    await prisma.smokeLog.deleteMany({ where: { userId } });
+    await prisma.smokeCraving.deleteMany({ where: { userId } });
+    try {
+        return await prisma.smokeProfile.delete({
+            where: { userId }
+        });
+    } catch {
+        return null; // Profile might not exist
+    }
+}
