@@ -14,6 +14,7 @@ import reflectionRoutes from './routes/reflections';
 import friendRoutes from './routes/friends';
 import pushRoutes from './routes/push';
 import gymRoutes from './routes/gym';
+import adminRoutes from './routes/admin';
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/reflections', reflectionRoutes);
 app.use('/friends', friendRoutes);
 app.use('/push', pushRoutes);
 app.use('/gym', gymRoutes);
+app.use('/admin', adminRoutes);
 
 // ─── Error handler (must be last) ─────────────────────────────────────────────
 app.use(errorHandler as any);
