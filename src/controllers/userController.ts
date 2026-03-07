@@ -10,7 +10,7 @@ export const updateAvatar = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'No se ha subido ninguna imagen o el formato no es válido.' });
         }
 
-        const userId = (req as any).user?.id;
+        const userId = (req as any).user?.userId;
         if (!userId) {
             return res.status(401).json({ error: 'Usuario no autenticado.' });
         }
