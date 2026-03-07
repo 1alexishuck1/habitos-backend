@@ -8,7 +8,7 @@ export async function searchUsersByName(query: string, excludeUserId: string) {
             id: { not: excludeUserId },
             name: { contains: query, mode: 'insensitive' },
         },
-        select: { id: true, name: true },
+        select: { id: true, name: true, avatarUrl: true },
         take: 20,
     });
 }
@@ -29,7 +29,7 @@ export async function findExistingRequest(senderId: string, receiverId: string) 
 export async function createRequest(senderId: string, receiverId: string) {
     return prisma.friendRequest.create({
         data: { senderId, receiverId },
-        include: { sender: { select: { id: true, name: true } } },
+        include: { sender: { select: { id: true, name: true, avatarUrl: true } } },
     });
 }
 
@@ -86,8 +86,8 @@ export async function listFriends(userId: string) {
     const rows = await prisma.friendship.findMany({
         where: { OR: [{ userAId: userId }, { userBId: userId }] },
         include: {
-            userA: { select: { id: true, name: true } },
-            userB: { select: { id: true, name: true } },
+            userA: { select: { id: true, name: true, avatarUrl: true } },
+            userB: { select: { id: true, name: true, avatarUrl: true } },
         },
         orderBy: { createdAt: 'desc' },
     });
@@ -189,14 +189,14 @@ export async function getFriendActivity(friendId: string, limit = 25) {
 export async function createMessage(senderId: string, receiverId: string, message: string) {
     return prisma.friendMessage.create({
         data: { senderId, receiverId, message },
-        include: { sender: { select: { id: true, name: true } } },
+        include: { sender: { select: { id: true, name: true, avatarUrl: true } } },
     });
 }
 
 export async function getUnreadMessages(userId: string) {
     return prisma.friendMessage.findMany({
         where: { receiverId: userId, isRead: false },
-        include: { sender: { select: { id: true, name: true } } },
+        include: { sender: { select: { id: true, name: true, avatarUrl: true } } },
         orderBy: { createdAt: 'desc' },
     });
 }
@@ -216,7 +216,7 @@ export async function getChatHistory(userAId: string, userBId: string, limit = 5
                 { senderId: userBId, receiverId: userAId },
             ]
         },
-        include: { sender: { select: { id: true, name: true } } },
+        include: { sender: { select: { id: true, name: true, avatarUrl: true } } },
         orderBy: { createdAt: 'asc' }, // older messages first for chat view
         take: limit, // in real app, might want pagination but 50 is fine for this context
     });
