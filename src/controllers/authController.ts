@@ -63,6 +63,25 @@ export async function getExperienceLogs(req: Request, res: Response, next: NextF
     } catch (err) { next(err); }
 }
 
+export async function updateProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { name } = req.body;
+        if (!name || name.trim().length < 2) {
+            res.status(400).json({ error: 'Nombre inválido' });
+            return;
+        }
+        const user = await authService.updateProfile(req.user!.userId, name);
+        res.json(user);
+    } catch (err) { next(err); }
+}
+
+export async function getProfileStats(req: Request, res: Response, next: NextFunction) {
+    try {
+        const stats = await authService.getProfileStats(req.user!.userId);
+        res.json(stats);
+    } catch (err) { next(err); }
+}
+
 export async function deleteAccount(req: Request, res: Response, next: NextFunction) {
     try {
         await authService.deleteAccount(req.user!.userId);

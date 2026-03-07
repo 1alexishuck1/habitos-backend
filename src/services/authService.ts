@@ -69,6 +69,16 @@ export async function deleteAccount(userId: string) {
     return userRepo.deleteUser(userId);
 }
 
+export async function updateProfile(userId: string, name: string) {
+    const user = await userRepo.updateUser(userId, { name });
+    const { passwordHash: _, ...safe } = user;
+    return safe;
+}
+
+export async function getProfileStats(userId: string) {
+    return userRepo.getProfileStats(userId);
+}
+
 export async function getExperienceLogs(userId: string) {
     return userRepo.getExperienceLogs(userId);
 }

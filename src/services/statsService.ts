@@ -99,12 +99,12 @@ export async function getSummary(userId: string, period: string, refDate?: strin
 
     // Task categories breakdown
     const categoryStats: Record<string, { done: number; total: number }> = {};
-    allTasksInRange.forEach(t => {
+    allTasksInRange.forEach((t: any) => {
         const cat = t.category || 'general';
         if (!categoryStats[cat]) categoryStats[cat] = { done: 0, total: 0 };
         categoryStats[cat].total++;
     });
-    doneTasks.forEach(t => {
+    doneTasks.forEach((t: any) => {
         const cat = t.category || 'general';
         if (categoryStats[cat]) categoryStats[cat].done++;
     });
@@ -120,7 +120,7 @@ export async function getSummary(userId: string, period: string, refDate?: strin
     let bestDay = null;
     if (period !== 'DAILY') {
         const dayCompletions: Record<number, number> = {};
-        doneTasks.forEach(t => {
+        doneTasks.forEach((t: any) => {
             if (t.doneAt) {
                 const wd = getISODay(toZonedTime(t.doneAt, TZ));
                 dayCompletions[wd] = (dayCompletions[wd] ?? 0) + 1;
@@ -176,15 +176,15 @@ export async function getSummaryToday(userId: string) {
     todayEnd.setUTCHours(23, 59, 59, 999);
 
     const allTodayTasks = await taskRepo.getTasksForDateRange(userId, todayDate, todayEnd);
-    const validTodayTasks = allTodayTasks.filter(t => toArgString(t.createdAt) <= today);
-    const doneTodayTasks = validTodayTasks.filter(t => t.status === 'DONE');
+    const validTodayTasks = (allTodayTasks as any[]).filter((t: any) => toArgString(t.createdAt) <= today);
+    const doneTodayTasks = (validTodayTasks as any[]).filter((t: any) => t.status === 'DONE');
 
     const tasksTotal = validTodayTasks.length;
     const tasksDone = doneTodayTasks.length;
 
     // Category breakdown
     const categoryStats: Record<string, { done: number; total: number }> = {};
-    validTodayTasks.forEach(t => {
+    validTodayTasks.forEach((t: any) => {
         const cat = t.category || 'general';
         if (!categoryStats[cat]) categoryStats[cat] = { done: 0, total: 0 };
         categoryStats[cat].total++;
@@ -259,7 +259,7 @@ async function generateWeeklySnapshot(userId: string, wStart: string, wEnd: stri
 
     // Best day of this week
     const dayCompletions: Record<number, number> = {};
-    doneTasks.forEach(t => {
+    doneTasks.forEach((t: any) => {
         if (t.doneAt) {
             const wd = getISODay(toZonedTime(t.doneAt, TZ));
             dayCompletions[wd] = (dayCompletions[wd] ?? 0) + 1;

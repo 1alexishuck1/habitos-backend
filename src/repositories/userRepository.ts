@@ -98,6 +98,28 @@ export async function removeExperience(userId: string, amount: number, reason: s
     return updatedUser;
 }
 
+export async function updateUser(id: string, data: { name?: string }) {
+    return prisma.user.update({
+        where: { id },
+        data,
+    });
+}
+
+export async function getProfileStats(userId: string) {
+    const [friendsA, friendsB, habitsDone, tasksDone] = await Promise.all([
+        prisma.friendship.count({ where: { userAId: userId } }),
+        prisma.friendship.count({ where: { userBId: userId } }),
+        prisma.habitDailySnapshot.count({ where: { userId, completed: true } }),
+        prisma.task.count({ where: { userId, status: 'DONE' } }),
+    ]);
+
+    return {
+        friendsCount: friendsA + friendsB,
+        habitsDoneCount: habitsDone,
+        tasksDoneCount: tasksDone,
+    };
+}
+
 export async function getExperienceLogs(userId: string) {
     return prisma.experienceLog.findMany({
         where: { userId },

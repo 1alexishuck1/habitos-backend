@@ -62,6 +62,19 @@ export async function getTasksForTodayView(userId: string, from: Date, to: Date)
     });
 }
 
+export async function getTasksForDateRange(userId: string, from: Date, to: Date) {
+    return prisma.task.findMany({
+        where: {
+            userId,
+            OR: [
+                { dueDate: { gte: from, lte: to } },
+                { isRecurring: true },
+            ],
+        },
+        orderBy: { createdAt: 'desc' },
+    });
+}
+
 export async function getDoneTasksInRange(userId: string, from: Date, to: Date) {
     return prisma.task.findMany({
         where: {
