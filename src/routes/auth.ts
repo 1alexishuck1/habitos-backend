@@ -13,6 +13,7 @@ router.post('/logout', authCtrl.logout);
 
 // Protected
 router.get('/me', authMiddleware, authCtrl.me);
+router.get('/:userId/profile', authMiddleware, authCtrl.getPublicProfile);
 router.patch('/me', authMiddleware, authCtrl.updateProfile);
 router.get('/me/stats', authMiddleware, authCtrl.getProfileStats);
 router.delete('/me', authMiddleware, authCtrl.deleteAccount);

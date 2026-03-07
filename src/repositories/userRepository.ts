@@ -120,6 +120,30 @@ export async function getProfileStats(userId: string) {
     };
 }
 
+export async function getFriendshipStatus(userId: string, targetId: string) {
+    const [friendship, requestSent, requestReceived] = await Promise.all([
+        prisma.friendship.findFirst({
+            where: {
+                OR: [
+                    { userAId: userId, userBId: targetId },
+                    { userAId: targetId, userBId: userId },
+                ],
+            },
+        }),
+        prisma.friendRequest.findFirst({
+            where: { senderId: userId, receiverId: targetId, status: 'PENDING' },
+        }),
+        prisma.friendRequest.findFirst({
+            where: { senderId: targetId, receiverId: userId, status: 'PENDING' },
+        }),
+    ]);
+
+    if (friendship) return 'FRIENDS';
+    if (requestSent) return 'REQUEST_SENT';
+    if (requestReceived) return 'REQUEST_RECEIVED';
+    return 'NONE';
+}
+
 export async function getExperienceLogs(userId: string) {
     return prisma.experienceLog.findMany({
         where: { userId },

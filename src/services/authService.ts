@@ -79,6 +79,23 @@ export async function getProfileStats(userId: string) {
     return userRepo.getProfileStats(userId);
 }
 
+export async function getPublicProfile(userId: string, targetId: string) {
+    const user = await userRepo.findUserById(targetId);
+    if (!user) return null;
+
+    const stats = await userRepo.getProfileStats(targetId);
+    const status = await userRepo.getFriendshipStatus(userId, targetId);
+
+    return {
+        id: user.id,
+        name: user.name,
+        level: user.level,
+        experience: user.experience,
+        stats,
+        friendshipStatus: status,
+    };
+}
+
 export async function getExperienceLogs(userId: string) {
     return userRepo.getExperienceLogs(userId);
 }

@@ -82,6 +82,17 @@ export async function getProfileStats(req: Request, res: Response, next: NextFun
     } catch (err) { next(err); }
 }
 
+export async function getPublicProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+        const profile = await authService.getPublicProfile(req.user!.userId, req.params.userId);
+        if (!profile) {
+            res.status(404).json({ error: 'Usuario no encontrado' });
+            return;
+        }
+        res.json(profile);
+    } catch (err) { next(err); }
+}
+
 export async function deleteAccount(req: Request, res: Response, next: NextFunction) {
     try {
         await authService.deleteAccount(req.user!.userId);
