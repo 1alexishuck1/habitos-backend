@@ -24,7 +24,8 @@ const app = express();
 
 // ─── Global middlewares ───────────────────────────────────────────────────────
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
 }));
 app.use(cors({
     origin: [env.FRONTEND_URL, 'http://localhost:5173'],
@@ -35,7 +36,11 @@ app.use(morgan('dev'));
 
 // Ensure storage is ready and serve static avatars
 const AVATAR_PATH = ensureAvatarDirectory();
-app.use('/avatars', express.static(AVATAR_PATH));
+app.use('/avatars', express.static(AVATAR_PATH, {
+    setHeaders: (res) => {
+        res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    }
+}));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
