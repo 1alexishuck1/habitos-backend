@@ -23,7 +23,9 @@ import { ensureAvatarDirectory } from './utils/avatarStorage';
 const app = express();
 
 // ─── Global middlewares ───────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(cors({
     origin: [env.FRONTEND_URL, 'http://localhost:5173'],
     credentials: true,
