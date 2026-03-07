@@ -106,16 +106,16 @@ export async function updateUser(id: string, data: { name?: string }) {
 }
 
 export async function getProfileStats(userId: string) {
-    const [friendsA, friendsB, habitsTotal, tasksDone] = await Promise.all([
+    const [friendsA, friendsB, habitsDoneCount, tasksDone] = await Promise.all([
         prisma.friendship.count({ where: { userAId: userId } }),
         prisma.friendship.count({ where: { userBId: userId } }),
-        prisma.habit.count({ where: { userId, isArchived: false } }),
+        prisma.habitDailySnapshot.count({ where: { userId, completed: true } }),
         prisma.task.count({ where: { userId, status: 'DONE' } }),
     ]);
 
     return {
         friendsCount: friendsA + friendsB,
-        habitsDoneCount: habitsTotal,
+        habitsDoneCount: habitsDoneCount,
         tasksDoneCount: tasksDone,
     };
 }
