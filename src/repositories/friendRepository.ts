@@ -131,20 +131,34 @@ export async function getFriendStats(friendId: string) {
     return { maxStreak, tasksDone7d, habitsCompleted7d };
 }
 
+import { todayInArg, argDateToUtc } from '../utils/date';
+
 // ─── Friend activity feed ─────────────────────────────────────────────────────
 
 export async function getFriendActivity(friendId: string, limit = 25) {
-    // Last habit logs with habit name
+    const todayStr = todayInArg();
+    const startOfToday = argDateToUtc(todayStr); // 00:00:00 UTC
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setUTCHours(23, 59, 59, 999);
+
+    // Last habit logs with habit name - limited to today
     const habitLogs = await prisma.habitLog.findMany({
-        where: { userId: friendId },
+        where: {
+            userId: friendId,
+            date: { gte: startOfToday, lte: endOfToday }
+        },
         orderBy: { createdAt: 'desc' },
         take: limit,
         include: { habit: { select: { name: true, type: true } } },
     });
 
-    // Last completed tasks
+    // Last completed tasks - limited to today
     const tasks = await prisma.task.findMany({
-        where: { userId: friendId, status: 'DONE', doneAt: { not: null } },
+        where: {
+            userId: friendId,
+            status: 'DONE',
+            doneAt: { gte: startOfToday, lte: endOfToday }
+        },
         orderBy: { doneAt: 'desc' },
         take: limit,
         select: { id: true, title: true, category: true, doneAt: true },
