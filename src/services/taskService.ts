@@ -20,11 +20,11 @@ export async function getTodayTasks(userId: string, targetDateStr?: string) {
     const endDate = new Date(targetDate);
     endDate.setDate(endDate.getDate() + 1);
 
-    const allTasks = await taskRepo.getTasksForDateRange(userId, targetDate, endDate);
+    const allTasks = await taskRepo.getTasksForTodayView(userId, targetDate, endDate);
     const isoDay = getISODay(new Date(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate()));
 
     return allTasks.filter(task => {
-        // Allow creating and seeing tasks on the same day (ignoring seconds)
+        // Prevent seeing future tasks
         if (toArgString(task.createdAt) > todayStr) return false;
 
         // If it's done, only show it if it was finished today
@@ -32,9 +32,15 @@ export async function getTodayTasks(userId: string, targetDateStr?: string) {
             return task.doneAt && todayStr === toArgString(task.doneAt);
         }
 
-        // Non-recurring: show if dueDate is today (or past and not done, but user asked for 'today')
+        // Non-recurring: show if dueDate <= today, or if no due date (Inbox)
         if (!task.isRecurring) {
-            return task.dueDate && todayStr === toArgDate(task.dueDate);
+            // If it has a due date, show if it's today or overdue
+            if (task.dueDate) {
+                const dueStr = toArgDate(task.dueDate);
+                return dueStr <= todayStr;
+            }
+            // If no due date, show it (as long as it's not done, which we checked above)
+            return true;
         }
 
         // Recurring: check if rule applies today

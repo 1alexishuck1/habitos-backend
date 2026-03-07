@@ -46,13 +46,16 @@ export async function deleteTask(id: string) {
     return prisma.task.delete({ where: { id } });
 }
 
-export async function getTasksForDateRange(userId: string, from: Date, to: Date) {
+export async function getTasksForTodayView(userId: string, from: Date, to: Date) {
+    // from is targetDate (midnight UTC), to is next day (midnight UTC)
     return prisma.task.findMany({
         where: {
             userId,
             OR: [
-                { dueDate: { gte: from, lte: to } },
-                { isRecurring: true },
+                { dueDate: { lte: to } },           // Todas las que vencen hoy o antes
+                { dueDate: null, status: { not: 'DONE' } }, // Todas las sin fecha que sigan pendientes
+                { createdAt: { lte: to } },         // Todas las creadas hasta hoy
+                { isRecurring: true },              // Todas las recurrentes
             ],
         },
         orderBy: { createdAt: 'desc' },
