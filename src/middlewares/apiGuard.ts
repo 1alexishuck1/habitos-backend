@@ -4,6 +4,7 @@ import { env } from '../config/env';
 export function apiGuard(req: Request, res: Response, next: NextFunction) {
     if (req.path === '/health') return next();
     if (req.path === '/friends/events') return next();
+    if (req.path === '/push/vapid-public-key') return next();
 
     const apiKey = req.headers['x-api-key'];
     if (!apiKey || apiKey !== env.API_SECRET) {
