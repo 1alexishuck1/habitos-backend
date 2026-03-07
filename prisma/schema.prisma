@@ -72,6 +72,7 @@ model User {
   timezone     String   @default("America/Argentina/Buenos_Aires")
   experience   Int      @default(0)
   level        Int      @default(1)
+  avatarUrl    String?  @map("avatar_url")
   createdAt    DateTime @default(now()) @map("created_at")
 
   refreshTokens    RefreshToken[]

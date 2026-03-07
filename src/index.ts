@@ -17,6 +17,8 @@ import pushRoutes from './routes/push';
 import gymRoutes from './routes/gym';
 import adminRoutes from './routes/admin';
 import smokeRoutes from './routes/smoke';
+import userRoutes from './routes/userRoutes';
+import { ensureAvatarDirectory } from './utils/avatarStorage';
 
 const app = express();
 
@@ -28,6 +30,10 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Ensure storage is ready and serve static avatars
+const AVATAR_PATH = ensureAvatarDirectory();
+app.use('/avatars', express.static(AVATAR_PATH));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
@@ -44,6 +50,7 @@ app.use('/push', pushRoutes);
 app.use('/gym', gymRoutes);
 app.use('/admin', adminRoutes);
 app.use('/smoke', smokeRoutes);
+app.use('/users', userRoutes);
 
 // ─── Error handler (must be last) ─────────────────────────────────────────────
 app.use(errorHandler as any);

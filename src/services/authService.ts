@@ -91,6 +91,7 @@ export async function getPublicProfile(userId: string, targetId: string) {
         name: user.name,
         level: user.level,
         experience: user.experience,
+        avatarUrl: user.avatarUrl,
         stats,
         friendshipStatus: status,
     };
